@@ -9,5 +9,5 @@
 namespace PhpX\Lang;
 
 class Object implements Configurable {
-    use ObjectTrait;
+//    use ObjectTrait;
 }

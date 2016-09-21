@@ -2,65 +2,87 @@
 /**
  * Created by PhpStorm.
  * User: admin
- * Date: 2016/8/23
- * Time: 16:31
+ * Date: 2016/8/30
+ * Time: 10:16
  */
 
 namespace PhpX\Data;
 
+
 use Exception;
+use PhpX\Lang\Builder;
 use PDO;
 use PDOException;
-use PhpX\Lang\Builder;
 
 class PDOBuilder extends Builder {
+    const FIELD_SERVER = 'server';
+    const FIELD_PORT = 'port';
+    const FIELD_DB_TYPE = 'dbType';
+    const FIELD_DB_NAME = 'dbName';
+    const FIELD_DB_FILE = 'dbFile';
+    const FIELD_SOCKET = 'socket';
+    const FIELD_USERNAME = 'username';
+    const FIELD_PASSWORD = 'password';
+    const FIELD_CHARSET = 'charset';
+    const FIELD_OPTION = 'option';
 
     /**
-     * PDOBuilder constructor.
-     * @param array $array
+     * @return PDOBuilder
      */
-    public function __construct ($array = null) {
-        parent::__construct();
-
-        if (is_array($array)) {
-            $this->merge($array);
-        }
-    }
-    
-    public function server ($value = null) {
-        return $this->valueOf('server', $value);
+    public static function getInstance ($array = array()) {
+        return new self($array);
     }
 
-    public function port ($value = null) {
-        return $this->valueOf('port', $value);
+    public function server ($value) {
+        return $this->set(self::FIELD_SERVER, $value);
     }
 
-    public function dbType ($value = null) {
-        return $this->valueOf('dbType', $value);
+    /**
+     * @param $value
+     * @return $this
+     */
+    public function port ($value) {
+        return $this->set(self::FIELD_PORT, $value);
     }
 
-    public function dbName ($value = null) {
-        return $this->valueOf('dbName', $value);
+    public function dbType ($value) {
+        return $this->set(self::FIELD_DB_TYPE, $value);
     }
 
-    public function socket ($value = null) {
-        return $this->valueOf('socket', $value);
+    public function dbName ($value) {
+        return $this->set(self::FIELD_DB_NAME, $value);
     }
 
-    public function username ($value = null) {
-        return $this->valueOf('username', $value);
+    public function dbFile ($value) {
+        return $this->set(self::FIELD_DB_FILE, $value);
     }
 
-    public function password ($value = null) {
-        return $this->valueOf('password', $value);
+    public function socket ($value) {
+        return $this->set(self::FIELD_SOCKET, $value);
     }
 
-    public function charset ($value = null) {
-        return $this->valueOf('charset', $value);
+    /**
+     * @param string $value
+     * @return $this
+     */
+    public function username ($value) {
+        return $this->set(self::FIELD_USERNAME, $value);
     }
 
-    public function option ($value = null) {
-        return $this->valueOf('option', $value);
+    /**
+     * @param string $value
+     * @return $this
+     */
+    public function password ($value) {
+        return $this->set(self::FIELD_PASSWORD, $value);
+    }
+
+    public function charset ($value) {
+        return $this->set(self::FIELD_CHARSET, $value);
+    }
+
+    public function option ($value) {
+        return $this->set(self::FIELD_OPTION, $value);
     }
 
     /**
@@ -72,19 +94,18 @@ class PDOBuilder extends Builder {
         try {
             $commands = array();
             $dsn = '';
-            
-            $data = $this->data;
-            
-            $server = $this->server();
-            $port = $this->port();
-            $dbType = strtolower($this->dbType());
-            $dbName = $this->dbName();
-            $socket = $this->socket();
-            $username = $this->username();
-            $password = $this->password();
-            $charset = $this->charset();
-            $option = $this->option();
-            
+
+            $server = $this->get(self::FIELD_SERVER);
+            $port = $this->get(self::FIELD_PORT);
+            $dbType = strtolower($this->get(self::FIELD_DB_TYPE));
+            $dbName = $this->get(self::FIELD_DB_NAME);
+            $dbFile = $this->get(self::FIELD_DB_FILE);
+            $socket = $this->get(self::FIELD_SOCKET);
+            $username = $this->get(self::FIELD_USERNAME);
+            $password = $this->get(self::FIELD_PASSWORD);
+            $charset = $this->get(self::FIELD_CHARSET);
+            $option = $this->get(self::FIELD_OPTION);
+
             $is_port = isset($port) && is_int($port * 1);
 
             switch ($dbType) {
@@ -125,7 +146,6 @@ class PDOBuilder extends Builder {
                     break;
 
                 case 'sqlite':
-                    $dbFile = $data['dbFile'];
                     $dsn = $dbType . ':' . $dbFile;
                     $username = null;
                     $password = null;
@@ -147,8 +167,7 @@ class PDOBuilder extends Builder {
                 $pdo->exec($value);
             }
             return $pdo;
-        }
-        catch (PDOException $e) {
+        } catch (PDOException $e) {
             throw new Exception($e->getMessage());
         }
     }

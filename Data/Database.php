@@ -2,16 +2,17 @@
 /**
  * Created by PhpStorm.
  * User: admin
- * Date: 2016/8/24
- * Time: 9:03
+ * Date: 2016/8/30
+ * Time: 10:32
  */
 
 namespace PhpX\Data;
+
 use PDO;
 use PDOStatement;
-use PhpX\Lang\Object;
 
-class Database extends Object {
+class Database {
+
     const SQL_TYPE_UNKNOWN = '';
     const SQL_TYPE_SELECT = 'SELECT';
     const SQL_TYPE_INSERT = 'INSERT';
@@ -34,7 +35,7 @@ class Database extends Object {
      */
     public static function getSqlType ($sql) {
         $sql = trim($sql);
-        $pattern = "/^(SELECT|INSERT|UPDATE|DELETE)/i";
+        $pattern = "/^ *?(SELECT|INSERT|UPDATE|DELETE)/i";
         if (preg_match($pattern, $sql, $matches)) {
             return ucwords($matches[1]);
         }
@@ -46,21 +47,26 @@ class Database extends Object {
      * @return bool|int|PDOStatement
      */
     public function exec ($executable) {
-        if (is_callable($executable)) {
+        if (is_callable($executable) || is_array($executable)) {
             return $this->transact($executable);
         } else if (is_string($executable)) {
-            switch (self::getSqlType($executable)) {
-                case self::SQL_TYPE_SELECT:
-                    return $this->pdo->query($executable);
-                case self::SQL_TYPE_INSERT:
-                    $this->pdo->exec($executable);
-                    return $this->pdo->lastInsertId();
-                case self::SQL_TYPE_UPDATE:
-                case self::SQL_TYPE_DELETE:
-                    return $this->pdo->exec($executable);
-            }
+            return $this->executeSQL($executable);
         }
         return false;
+    }
+
+    public function executeSQL ($sql) {
+        switch (self::getSqlType($sql)) {
+            case self::SQL_TYPE_SELECT:
+                return $this->pdo->query($sql);
+            case self::SQL_TYPE_INSERT:
+                $this->pdo->exec($sql);
+                return $this->pdo->lastInsertId();
+            case self::SQL_TYPE_UPDATE:
+            case self::SQL_TYPE_DELETE:
+                return $this->pdo->exec($sql);
+        }
+        return null;
     }
 
     /**
@@ -70,12 +76,26 @@ class Database extends Object {
      */
     public function transact ($transaction) {
         $this->pdo->beginTransaction();
-        $result = $transaction($this);
-        if ($result) {
+        $success = true;
+        if (is_callable($transaction)) {
+            $success = $transaction($this);
+        } else if (is_array($transaction)) {
+            foreach ($transaction as $sql) {
+                if (!$this->executeSQL($sql)) {
+                    $success = false;
+                    break;
+                }
+            }
+        }
+        if ($success) {
             $this->pdo->commit();
-            return $result;
+            return true;
         }
         $this->pdo->rollBack();
         return false;
+    }
+
+    public function quote ($value) {
+        return $this->pdo->quote($value);
     }
 }
